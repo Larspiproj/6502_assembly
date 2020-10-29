@@ -3,25 +3,19 @@ PORTA = $6001
 DDRB  = $6002
 DDRA  = $6003
 STORE_A = $1000
+PORTA_COPY = $1002
 
-E  = %10000000
-RW = %01000000
-RS = %00100000
-;E  = %00000100
-;RW = %00000010
-;RS = %00000001
+E  = %00000100
+RW = %00000010
+RS = %00000001
 
     .org $8000
 
 reset:
-    ldx #$ff                                                                     
+    ldx #$ff
     txs
 
-    lda #%11111111      ; Set all pins on port B to output
-    sta DDRB
-
-    lda #%11100000      ; Set top 3 pins on port A to output
-    ;lda #%00000111      ; Set low 3 pins on port A to output
+    lda #%11111111      ; Set all pins on port A to output
     sta DDRA
     jsr lcd_init
 
@@ -37,7 +31,7 @@ loop:
     jmp loop
 
 ;message: .asciiz "Hello, world!"
-message: .asciiz "6502-lcd-4bit"
+message: .asciiz "6502-4bit-acia"
 
 lcd_init:
     ;lda #%00110011     ; Initialize, 0x33
@@ -87,46 +81,50 @@ send_char:
 
 send_nibble:
     and #$f0
-    sta PORTB
+    sta PORTA
+    sta PORTA_COPY
     rts
 
 lcd_instruction:
     jsr lcd_wait
-    lda #0              ; Sets RS/RW/E bits
+    lda #0               ; Sets RS/RW/E bits
     sta PORTA
-    lda #E              ; Toggle E bit 
+    lda PORTA_COPY
+    ora #E               ; Toggle E bit
     sta PORTA
-    lda #0              ; Sets RS/RW/E bits
+    lda PORTA_COPY       ; Sets RS/RW/E bits
     sta PORTA
     rts
 
 print_char:
     jsr lcd_wait
-    lda #RS          ; Sets RS/RW/E bits
+    lda PORTA_COPY          ; Sets RS/RW/E bits
+    ora #RS
     sta PORTA
-    lda #(RS | E)    ; Toggle E bit 
+    ora #E
     sta PORTA
-    lda #RS          ; Sets RS/RW/E bits
+    lda PORTA_COPY          ; Sets RS/RW/E bits
+    ora #RS
     sta PORTA
     rts
 
 lcd_wait:
     pha
-    lda #%00000000      ;   Port B is input
-    sta DDRB
+    lda #%00001111      ; Port A D4-D7 is input
+    sta DDRA
 lcd_busy:
     lda #RW
     sta PORTA
     lda #(RW | E)
     sta PORTA
-    lda PORTB
+    lda PORTA
     and #%10000000
     bne lcd_busy
 
     lda #RW
     sta PORTA
-    lda #%11111111      ;   Port B is output again
-    sta DDRB
+    lda #%11111111      ; Port A is output again
+    sta DDRA
     pla
     rts
     

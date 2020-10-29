@@ -22,9 +22,9 @@ reset:
     txs
     cli
 
-    lda #82
+    lda #$82
     sta IER
-    lda #00
+    lda #$00
     sta PCR
 
     lda #%11111111  ; Set all pins on port B to output
@@ -190,12 +190,33 @@ print_char:
 
 nmi:
 irq:
+    pha
+    txa
+    pha
+    tya
+    pha
+
     inc counter
     bne exit_irq
     inc counter + 1
 exit_irq:
-  bit PORTA
-  rti
+    ldy #$ff
+    ldx #$ff
+delay:
+    dex
+    bne delay
+    dey
+    bne delay
+
+    bit PORTA
+
+    pla
+    tay
+    pla
+    tax
+    pla
+
+    rti
 
     .org $fffa
     .word nmi
